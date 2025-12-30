@@ -1,17 +1,25 @@
 package com.vehiclestore.controller;
 
+import java.util.List;
+
+import com.vehiclestore.service.error.IdInvalidException;
+import com.vehiclestore.service.UserService;
+import com.vehiclestore.domain.User;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import com.vehiclestore.service.UserService;
-import com.vehiclestore.domain.User;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.util.List;
+import jakarta.persistence.Id;
 
 @RestController
 public class UserController {
@@ -23,34 +31,39 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/user")
-    public User createNewUser(
+    @PostMapping("/users")
+    public ResponseEntity<User> createNewUser(
             @RequestBody User postManUser) {
 
         User newUser = this.userService.handleCreateUser(postManUser);
-        return newUser;
+        return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
     }
 
-    @DeleteMapping("/user/{id}")
-    public String deleteUser(@PathVariable("id") long id) {
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<String> deleteUser(@PathVariable("id") long id) throws IdInvalidException {
+
+        if (id <= 0) {
+            throw new IdInvalidException("ID is invalid");
+        }
         this.userService.handleDeleteUser(id);
-        return "User deleted";
+        return ResponseEntity.status(HttpStatus.OK).body("User deleted");
     }
 
-    @GetMapping("/user/{id}")
-    public User getUserById(@PathVariable("id") long id) {
+    @GetMapping("/users/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable("id") long id) {
         User user = this.userService.handleGetUserById(id);
-        return user;
+        return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
     @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return this.userService.handleGetAllUsers();
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> users = this.userService.handleGetAllUsers();
+        return ResponseEntity.status(HttpStatus.OK).body(users);
     }
 
-    @PutMapping("/user")
-    public User updateUser(@RequestBody User updatedUser) {
+    @PutMapping("/users")
+    public ResponseEntity<User> updateUser(@RequestBody User updatedUser) {
         User resultUser = this.userService.handleUpdateUser(updatedUser);
-        return resultUser;
+        return ResponseEntity.status(HttpStatus.OK).body(resultUser);
     }
 }

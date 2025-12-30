@@ -19,13 +19,15 @@ repositories {
 
 dependencies {
 
+    //Dev tools
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
     // ===== CORE =====
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     //implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
-    // ===== OAUTH2 (ĐÃ SỬA) =====
+    // ===== OAUTH2  =====
     //implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     // ===== DB =====
