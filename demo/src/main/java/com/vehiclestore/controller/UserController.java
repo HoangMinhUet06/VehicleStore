@@ -1,6 +1,7 @@
 package com.vehiclestore.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import com.vehiclestore.service.UserService;
 import com.vehiclestore.domain.User;
@@ -15,14 +16,12 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/user/create")
-    public String createNewUser() {
-        User user = new User();
-        user.setName("Ryan Lee");
-        user.setEmail("hoangminhaaz@gmail.com");
-        user.setPassword("12345678");
+    @PostMapping("/user/create")
 
-        this.userService.handleCreateUser(user);
-        return "Create new user successfully!";
+    public User createNewUser(
+            @RequestBody User postManUser) {
+
+        User newUser = this.userService.handleCreateUser(postManUser);
+        return newUser;
     }
 }

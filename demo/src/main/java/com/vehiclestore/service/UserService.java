@@ -13,6 +13,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    // Handle creating a new user and retrurn the created user
     public User handleCreateUser(User user) {
         return this.userRepository.save(user); // Save to MySQL
     }
