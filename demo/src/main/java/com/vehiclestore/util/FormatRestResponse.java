@@ -13,14 +13,19 @@ import com.vehiclestore.domain.RestResponse;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletResponse;
 
+//Spring component to format all REST API responses in a consistent structure, for all controllers
+//After controller methods return, this class intercepts the response and wraps it in RestResponse
+//First, call supports() to check if formatting is needed
+//Then, call beforeBodyWrite() to modify the response body before sending to client
 @ControllerAdvice
 public class FormatRestResponse implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
-        return true;
+        return true; // Apply to all responses
     }
 
+    // Method to format the response body before sending it to the client
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
             Class selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
@@ -34,10 +39,10 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
         res.setStatusCode(status);
         if (status >= 400) {
             // Case error
-            return body;
+            return body; // Keep it, let GlobalException handle error responses
         } else {
-            // Case success
-            res.setData(body);
+            // Case success, wrap the body in RestResponse
+            res.setData(body); // Original data from controller
             res.setMessage("CALL API SUCCESS");
         }
         return res;

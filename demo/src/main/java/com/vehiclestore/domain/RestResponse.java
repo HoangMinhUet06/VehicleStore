@@ -1,5 +1,6 @@
 package com.vehiclestore.domain;
 
+// Generic REST API response structure, all API responses will use this format
 public class RestResponse<T> {
     private int statusCode;
     private String error;
