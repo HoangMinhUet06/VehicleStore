@@ -57,7 +57,9 @@ public class UserService {
         return this.userRepository.save(currentUser);
     }
 
-    // Handle get user by username (email)
+    // Handle get user by username (email) - Used by UserDetailCustom for authentication
+    // This method is called during login to find user in database
+    // Returns null if user not found -> will cause authentication to fail
     public User handleGetUserByUsername(String username) {
         return this.userRepository.findByEmail(username);
     }
