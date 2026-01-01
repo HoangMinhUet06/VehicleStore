@@ -1,5 +1,9 @@
 package com.vehiclestore.config;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -9,15 +13,24 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
+
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.nimbusds.jose.util.Base64;
+import com.vehiclestore.util.SecurityUtil;
 
 // Main Spring Security configuration class
 // This class configures how authentication and authorization work in the application
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfiguration {
+
+    @Value("${vehcilestore.jwt.base64-secret}")
+    private String jwtKey;
 
     // Bean to encode passwords using BCrypt algorithm
     // BCrypt is a one-way hash function - cannot decrypt back to original password
@@ -68,6 +81,16 @@ public class SecurityConfiguration {
                                                                                                                // authenticate
 
         return http.build();
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder() {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(getSecretKey()));
+    }
+
+    private SecretKey getSecretKey() {
+        byte[] keyBytes = Base64.from(jwtKey).decode();
+        return new SecretKeySpec(keyBytes, 0, keyBytes.length, SecurityUtil.JWT_ALGORITHM.getName());
     }
 
     @Bean

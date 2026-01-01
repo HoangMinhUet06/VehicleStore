@@ -2,18 +2,23 @@ package com.vehiclestore.domain;
 
 import jakarta.persistence.*;
 
+// User Entity - Maps to 'users' table in database
+// JPA Entity represents a table in the database
+// Each instance of User = one row in 'users' table
 @Entity
 @Table(name = "users")
-// Create User entity with fields: id, name, email, password
 public class User {
 
+    // Primary key with auto-increment
+    // @Id = marks this field as primary key
+    // @GeneratedValue(IDENTITY) = auto-increment in MySQL
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
-    private String email;
-    private String password;
+    private String email; // Used as username for authentication
+    private String password; // Stored as BCrypt hash, NOT plain text;
 
     public String getName() {
         return name;

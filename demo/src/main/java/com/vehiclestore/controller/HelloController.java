@@ -2,7 +2,7 @@ package com.vehiclestore.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 
-import com.vehiclestore.service.error.IdInvalidException;
+import com.vehiclestore.util.error.IdInvalidException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

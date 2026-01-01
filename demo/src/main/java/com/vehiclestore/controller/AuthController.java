@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vehiclestore.domain.dto.LoginDTO;
+import com.vehiclestore.domain.dto.ResponseLoginDTO;
+import com.vehiclestore.util.SecurityUtil;
+
+import jakarta.validation.Valid;
 
 // Controller handling authentication endpoints (login, logout, etc.)
 @RestController
@@ -19,8 +23,11 @@ public class AuthController {
     // AuthenticationManager is responsible for authenticating users
     private final AuthenticationManagerBuilder authenticationMangerBuilder;
 
-    public AuthController(AuthenticationManagerBuilder authenticationMangerBuilder) {
+    private final SecurityUtil securityUtil;
+
+    public AuthController(AuthenticationManagerBuilder authenticationMangerBuilder, SecurityUtil securityUtil) {
         this.authenticationMangerBuilder = authenticationMangerBuilder;
+        this.securityUtil = securityUtil;
     }
 
     // Login endpoint - receives username (email) and password from client
@@ -34,7 +41,7 @@ public class AuthController {
     // 4. If success: return authenticated Authentication object
     // If fail: throw BadCredentialsException (403 error)
     @PostMapping("/login")
-    public ResponseEntity<LoginDTO> login(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<ResponseLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
 
         // Step 1: Wrap username and password into an authentication token
         // This token is NOT authenticated yet - just holds the credentials
@@ -50,7 +57,10 @@ public class AuthController {
         Authentication authentication = authenticationMangerBuilder.getObject().authenticate(authenticationToken);
 
         // Step 3: If we reach here, authentication was successful
-        // TODO: Generate JWT token and return to client
-        return ResponseEntity.ok().body(loginDTO);
+        // Create a token
+        String accessToken = this.securityUtil.createToken(authentication);
+        ResponseLoginDTO response = new ResponseLoginDTO();
+        response.setAccessToken(accessToken);
+        return ResponseEntity.ok().body(response);
     }
 }

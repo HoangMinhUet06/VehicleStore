@@ -13,11 +13,11 @@ import org.springframework.stereotype.Component;
 // This class is called automatically by DaoAuthenticationProvider during authentication
 // Flow: Login request -> DaoAuthenticationProvider -> loadUserByUsername() -> return UserDetails
 @Component("userDetailService")
-public class UserDetailCustom implements UserDetailsService {
+public class UserDetailsCustom implements UserDetailsService {
 
     private final UserService userService;
 
-    public UserDetailCustom(UserService userService) {
+    public UserDetailsCustom(UserService userService) {
         this.userService = userService;
     }
 
@@ -30,6 +30,10 @@ public class UserDetailCustom implements UserDetailsService {
 
         // 1. Find user in database by email
         User user = this.userService.handleGetUserByUsername(username);
+
+        if (user == null) {
+            throw new UsernameNotFoundException("Username/password invalid");
+        }
 
         // 2. Convert our User entity to Spring Security's User object
         // IMPORTANT: There are 2 different User classes!
