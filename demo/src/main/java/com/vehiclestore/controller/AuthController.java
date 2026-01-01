@@ -1,6 +1,7 @@
 package com.vehiclestore.controller;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nimbusds.jose.proc.SecurityContext;
 import com.vehiclestore.domain.dto.LoginDTO;
 import com.vehiclestore.domain.dto.ResponseLoginDTO;
 import com.vehiclestore.util.SecurityUtil;
@@ -59,6 +61,7 @@ public class AuthController {
         // Step 3: If we reach here, authentication was successful
         // Create a token
         String accessToken = this.securityUtil.createToken(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         ResponseLoginDTO response = new ResponseLoginDTO();
         response.setAccessToken(accessToken);
         return ResponseEntity.ok().body(response);

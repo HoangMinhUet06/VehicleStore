@@ -18,12 +18,17 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.util.Base64;
+import com.vehiclestore.config.CustomAuthenticationEntryPoint;
 import com.vehiclestore.util.SecurityUtil;
 
 /**
@@ -35,12 +40,12 @@ import com.vehiclestore.util.SecurityUtil;
  * KEY CONCEPTS:
  * -------------
  * 1. @Configuration: Marks this class as a Spring configuration class
- *    - Spring will scan this class and create all @Bean methods as Spring beans
- *    - These beans are singletons (created once, shared everywhere)
+ * - Spring will scan this class and create all @Bean methods as Spring beans
+ * - These beans are singletons (created once, shared everywhere)
  * 
  * 2. @EnableMethodSecurity: Enables method-level security annotations
- *    - Allows using @Secured, @PreAuthorize, @PostAuthorize on controller methods
- *    - Example: @Secured("ROLE_ADMIN") on a method = only admins can access
+ * - Allows using @Secured, @PreAuthorize, @PostAuthorize on controller methods
+ * - Example: @Secured("ROLE_ADMIN") on a method = only admins can access
  * 
  * AUTHENTICATION vs AUTHORIZATION:
  * --------------------------------
@@ -50,8 +55,8 @@ import com.vehiclestore.util.SecurityUtil;
  * FLOW OVERVIEW:
  * --------------
  * Request → SecurityFilterChain → JWT validation → Controller
- *                                   ↓
- *                           (if login) → AuthenticationProvider → UserDetailsService
+ * ↓
+ * (if login) → AuthenticationProvider → UserDetailsService
  */
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
@@ -59,10 +64,11 @@ public class SecurityConfiguration {
 
     /**
      * JWT Secret Key loaded from application.properties
+     * 
      * @Value annotation injects the property value into this field
-     * This key is used for both:
-     * - Signing JWT tokens (JwtEncoder)
-     * - Verifying JWT tokens (JwtDecoder)
+     *        This key is used for both:
+     *        - Signing JWT tokens (JwtEncoder)
+     *        - Verifying JWT tokens (JwtDecoder)
      */
     @Value("${vehcilestore.jwt.base64-secret}")
     private String jwtKey;
@@ -110,20 +116,21 @@ public class SecurityConfiguration {
      * AUTHENTICATION FLOW:
      * --------------------
      * POST /login (username, password)
-     *      ↓
+     * ↓
      * AuthController.login()
-     *      ↓
+     * ↓
      * AuthenticationManager.authenticate()
-     *      ↓
+     * ↓
      * DaoAuthenticationProvider
-     *      ↓
-     * UserDetailsService.loadUserByUsername(username)  ← Find user in DB
-     *      ↓
-     * PasswordEncoder.matches(inputPassword, dbPassword)  ← Compare passwords
-     *      ↓
-     * Return Authentication object (success) or throw BadCredentialsException (fail)
+     * ↓
+     * UserDetailsService.loadUserByUsername(username) ← Find user in DB
+     * ↓
+     * PasswordEncoder.matches(inputPassword, dbPassword) ← Compare passwords
+     * ↓
+     * Return Authentication object (success) or throw BadCredentialsException
+     * (fail)
      * 
-     * @param passwordEncoder - BCrypt encoder for password comparison
+     * @param passwordEncoder    - BCrypt encoder for password comparison
      * @param userDetailsService - Our custom UserDetailCustom class
      */
     @Bean
@@ -131,18 +138,19 @@ public class SecurityConfiguration {
             PasswordEncoder passwordEncoder,
             UserDetailsService userDetailsService) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        
+
         // Tell Spring Security WHERE to find user info
         // This connects to our UserDetailCustom.loadUserByUsername() method
         authProvider.setUserDetailsService(userDetailsService);
-        
+
         // Tell Spring Security HOW to compare passwords
         // BCrypt will compare: input password vs hashed password in DB
         authProvider.setPasswordEncoder(passwordEncoder);
-        
-        // Optional: If uncommented, will show "User not found" instead of generic "Bad credentials"
+
+        // Optional: If uncommented, will show "User not found" instead of generic "Bad
+        // credentials"
         // authProvider.setHideUserNotFoundExceptions(false);
-        
+
         return authProvider;
     }
 
@@ -165,41 +173,42 @@ public class SecurityConfiguration {
      * KEY CONFIGURATIONS EXPLAINED:
      * -----------------------------
      * 1. csrf().disable()
-     *    - CSRF = Cross-Site Request Forgery protection
-     *    - Disabled for REST APIs (we use JWT tokens instead of cookies)
-     *    - Enable for traditional web apps with forms/cookies
+     * - CSRF = Cross-Site Request Forgery protection
+     * - Disabled for REST APIs (we use JWT tokens instead of cookies)
+     * - Enable for traditional web apps with forms/cookies
      * 
      * 2. authorizeHttpRequests()
-     *    - Define which URLs are public vs protected
-     *    - Order matters! First match wins
+     * - Define which URLs are public vs protected
+     * - Order matters! First match wins
      * 
      * 3. oauth2ResourceServer().jwt()
-     *    - Enable JWT token validation for protected endpoints
-     *    - Every request must include: Authorization: Bearer <token>
+     * - Enable JWT token validation for protected endpoints
+     * - Every request must include: Authorization: Bearer <token>
      * 
      * 4. sessionManagement(STATELESS)
-     *    - REST APIs are stateless (no server-side sessions)
-     *    - Each request must authenticate itself (via JWT)
-     *    - Better for scalability (no session storage needed)
+     * - REST APIs are stateless (no server-side sessions)
+     * - Each request must authenticate itself (via JWT)
+     * - Better for scalability (no session storage needed)
      * 
      * REQUEST FLOW FOR PROTECTED ENDPOINT:
      * ------------------------------------
      * GET /users (with header: Authorization: Bearer eyJhbGc...)
-     *      ↓
+     * ↓
      * JwtAuthenticationFilter extracts token
-     *      ↓
+     * ↓
      * JwtDecoder validates token signature & expiration
-     *      ↓
+     * ↓
      * If valid → Continue to controller
      * If invalid → Return 401 Unauthorized
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception {
         http
                 // CSRF Protection - Disabled for stateless REST API
                 // REST APIs use tokens (not cookies), so CSRF attack is not applicable
                 .csrf(c -> c.disable())
-                
+
                 // URL Authorization Rules
                 // Define which endpoints are public and which require authentication
                 .authorizeHttpRequests(
@@ -207,22 +216,29 @@ public class SecurityConfiguration {
                                 // Public endpoints - no authentication required
                                 // Anyone can access "/" and "/login"
                                 .requestMatchers("/", "/login").permitAll()
-                                
+
                                 // All other endpoints require authentication
                                 // User must provide valid JWT token
                                 .anyRequest().authenticated())
-                
+
                 // Enable JWT-based authentication for this resource server
                 // When a request comes with "Authorization: Bearer <token>":
                 // 1. Extract the token
                 // 2. Validate using JwtDecoder bean
                 // 3. If valid, set authentication in SecurityContext
-                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults()))
-                
+                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint(customAuthenticationEntryPoint))
+
+                .exceptionHandling(
+                        exceptions -> exceptions
+                                .authenticationEntryPoint(customAuthenticationEntryPoint) // Handle 401 Unauthorized
+                                .accessDeniedHandler(new BearerTokenAccessDeniedHandler()) // Handle 403 Forbidden
+                )
+
                 // Disable default Spring Security login form
                 // We use custom REST endpoint /login instead
                 .formLogin(f -> f.disable())
-                
+
                 // Session Management - STATELESS mode
                 // No HttpSession created or used
                 // Perfect for REST APIs - each request is independent
@@ -231,6 +247,52 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
+    }
+
+    /**
+     * =========================================================================
+     * JWT AUTHENTICATION CONVERTER BEAN
+     * =========================================================================
+     * Converts JWT token claims into Spring Security authorities/roles
+     * 
+     * WHAT IT DOES:
+     * -------------
+     * 1. Extracts authorities/roles from JWT claims
+     * 2. Converts them to Spring Security GrantedAuthority objects
+     * 3. Used by oauth2ResourceServer to set user permissions
+     * 
+     * WHY NEEDED:
+     * -----------
+     * - By default, Spring looks for "scope" or "scp" claim in JWT
+     * - We can customize to use different claim name (e.g., "roles", "permissions")
+     * - Can also customize the authority prefix (default is "SCOPE_")
+     * 
+     * EXAMPLE:
+     * --------
+     * JWT claim: { "permissions": ["ROLE_ADMIN", "ROLE_USER"] }
+     * → Converts to: [GrantedAuthority("ROLE_ADMIN"),
+     * GrantedAuthority("ROLE_USER")]
+     */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        // Configure how to extract authorities from JWT
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+
+        // Remove default "SCOPE_" prefix (set to empty string)
+        // Default: "SCOPE_" → authorities become "SCOPE_ROLE_ADMIN"
+        // With "": authorities become "ROLE_ADMIN" (cleaner)
+        grantedAuthoritiesConverter.setAuthorityPrefix("");
+
+        // Set which JWT claim contains the authorities/roles
+        // Default looks for "scope" or "scp" claim
+        // Here we use custom claim name from SecurityUtil
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("RyanLee");
+
+        // Create converter and set the authorities converter
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+
+        return jwtAuthenticationConverter;
     }
 
     /**
@@ -298,9 +360,9 @@ public class SecurityConfiguration {
         // Build decoder with our secret key and algorithm
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder
                 .withSecretKey(getSecretKey())
-                .macAlgorithm(SecurityUtil.JWT_ALGORITHM)  // Must match encoder algorithm
+                .macAlgorithm(SecurityUtil.JWT_ALGORITHM) // Must match encoder algorithm
                 .build();
-        
+
         // Return a lambda that decodes and logs any errors
         return token -> {
             try {
@@ -318,7 +380,8 @@ public class SecurityConfiguration {
      * =========================================================================
      * GET SECRET KEY HELPER METHOD
      * =========================================================================
-     * Converts the Base64-encoded secret key from properties into a SecretKey object
+     * Converts the Base64-encoded secret key from properties into a SecretKey
+     * object
      * 
      * SECRET KEY REQUIREMENTS (by algorithm):
      * ---------------------------------------
@@ -341,10 +404,10 @@ public class SecurityConfiguration {
     private SecretKey getSecretKey() {
         // Decode Base64 string to byte array
         byte[] keyBytes = Base64.from(jwtKey).decode();
-        
+
         // Create SecretKeySpec with the algorithm name
         // SecretKeySpec implements SecretKey interface
-        return new SecretKeySpec(keyBytes, 0, keyBytes.length, 
+        return new SecretKeySpec(keyBytes, 0, keyBytes.length,
                 SecurityUtil.JWT_ALGORITHM.getName());
     }
 

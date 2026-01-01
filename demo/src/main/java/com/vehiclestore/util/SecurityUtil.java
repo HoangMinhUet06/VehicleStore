@@ -26,6 +26,11 @@ public class SecurityUtil {
     // HS384 needs 48 bytes, HS512 needs 64 bytes
     public static final MacAlgorithm JWT_ALGORITHM = MacAlgorithm.HS256;
 
+    // JWT claim name for storing user authorities/roles
+    // This is the key in JWT payload that contains user permissions
+    // Example: { "permissions": ["ROLE_ADMIN", "ROLE_USER"] }
+    public static final String AUTHORITIES_KEY = "permissions";
+
     public SecurityUtil(JwtEncoder jwtEncoder) {
         this.jwtEncoder = jwtEncoder;
     }

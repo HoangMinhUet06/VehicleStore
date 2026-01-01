@@ -23,7 +23,6 @@ public class GlobalException {
 
     // Handle multiple authentication/authorization exceptions
     @ExceptionHandler(value = {
-            IdInvalidException.class,
             UsernameNotFoundException.class,
             BadCredentialsException.class
     })
